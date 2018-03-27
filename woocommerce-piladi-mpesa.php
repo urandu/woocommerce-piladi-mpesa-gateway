@@ -70,7 +70,45 @@ class cwoa_WCPiladiMpesa extends WC_Payment_Gateway
         if (is_admin()) {
             add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
         }
+
+
+        add_action('woocommerce_checkout_process', 'process_custom_payment');
+        function process_custom_payment(){
+
+            if($_POST['payment_method'] != 'cwoa_add_piladi_mpesa_gateway')
+                return;
+
+            if( !isset($_POST['mobile']) || empty($_POST['mobile']) )
+                wc_add_notice( __( 'Please add your mobile number', $this->domain ), 'error' );
+
+
+            if( !isset($_POST['transaction']) || empty($_POST['transaction']) )
+                wc_add_notice( __( 'Please add your transaction ID', $this->domain ), 'error' );
+
+        }
+
+        /**
+         * Update the order meta with field value
+         */
+        add_action( 'woocommerce_checkout_update_order_meta', 'custom_payment_update_order_meta' );
+        function custom_payment_update_order_meta( $order_id ) {
+
+            if($_POST['payment_method'] != 'custom')
+                return;
+
+            // echo "<pre>";
+            // print_r($_POST);
+            // echo "</pre>";
+            // exit();
+
+            update_post_meta( $order_id, 'mobile', $_POST['mobile'] );
+            update_post_meta( $order_id, 'transaction', $_POST['transaction'] );
+        }
+
+
     } // Here is the  End __construct()
+
+
 
     // administration fields for specific Gateway
     public function init_form_fields()
@@ -114,6 +152,49 @@ class cwoa_WCPiladiMpesa extends WC_Payment_Gateway
             )
         );
     }
+
+
+    public function payment_fields(){
+
+        if ( $description = $this->get_description() ) {
+            echo wpautop( wptexturize( $description ) );
+        }
+
+        ?>
+        <div id="custom_input">
+            <p class="form-row form-row-wide">
+                <label for="mobile" class=""><?php _e('Mobile Number', $this->domain); ?></label>
+                <input type="text" class="" name="mobile" id="mobile" placeholder="" value="">
+            </p>
+            <p class="form-row form-row-wide">
+                <label for="transaction" class=""><?php _e('Transaction ID', $this->domain); ?></label>
+                <input type="text" class="" name="transaction" id="transaction" placeholder="" value="">
+            </p>
+        </div>
+        <?php
+    }
+
+
+    public function validate_fields() {
+        if ($_POST['mobile']) {
+            $success = true;
+        } else {
+            $error_message = __("The ", 'woothemes') . $this->mobile . __(" field is required", 'woothemes');
+            wc_add_notice(__('Field error: ', 'woothemes') . $error_message, 'error');
+            $success = False;
+        }
+        if ($_POST['transaction']) {
+            $success = true;
+        } else {
+            $error_message = __("The ", 'woothemes') . $this->transaction . __(" field is required", 'woothemes');
+            wc_add_notice(__('Field error: ', 'woothemes') . $error_message, 'error');
+            $success = False;
+        }
+        return $success;
+    }
+
+
+
 
     // Response handled for payment gateway
     public function process_payment($order_id)
@@ -250,10 +331,10 @@ class cwoa_WCPiladiMpesa extends WC_Payment_Gateway
     }
 
     // Validate fields
-    public function validate_fields()
-    {
-        return true;
-    }
+//    public function validate_fields()
+//    {
+//        return true;
+//    }
 
     public function do_ssl_check()
     {

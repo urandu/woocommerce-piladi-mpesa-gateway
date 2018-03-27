@@ -21,40 +21,6 @@ function cwoa_piladi_mpesa_gateway_init() {
 
 
 
-add_action('woocommerce_checkout_process', 'process_custom_payment');
-function process_custom_payment(){
-
-    if($_POST['payment_method'] != 'cwoa_add_piladi_mpesa_gateway')
-        return;
-
-    if( !isset($_POST['mobile']) || empty($_POST['mobile']) )
-        wc_add_notice( __( 'Please add your mobile number', $this->domain ), 'error' );
-
-
-    if( !isset($_POST['transaction']) || empty($_POST['transaction']) )
-        wc_add_notice( __( 'Please add your transaction ID', $this->domain ), 'error' );
-
-}
-
-/**
- * Update the order meta with field value
- */
-add_action( 'woocommerce_checkout_update_order_meta', 'custom_payment_update_order_meta' );
-function custom_payment_update_order_meta( $order_id ) {
-
-    if($_POST['payment_method'] != 'custom')
-        return;
-
-    // echo "<pre>";
-    // print_r($_POST);
-    // echo "</pre>";
-    // exit();
-
-    update_post_meta( $order_id, 'mobile', $_POST['mobile'] );
-    update_post_meta( $order_id, 'transaction', $_POST['transaction'] );
-}
-
-
 
 
 
