@@ -26,6 +26,7 @@ class cwoa_WCPiladiMpesa extends WC_Payment_Gateway
 
 
         $this->icon = null;
+        $this->transaction = $this->get_option('transaction');
 
         $this->has_fields = true;
 
@@ -37,20 +38,6 @@ class cwoa_WCPiladiMpesa extends WC_Payment_Gateway
          */
         add_action('woocommerce_after_order_notes', 'customise_checkout_field');
 
-        function customise_checkout_field($checkout)
-        {
-            echo '<div id="customise_checkout_field"><h2>' . __('Heading') . '</h2>';
-            woocommerce_form_field('customised_field_name', array(
-                'type' => 'text',
-                'class' => array(
-                    'my-field-class form-row-wide'
-                ),
-                'label' => __('Customise Additional Field'),
-                'placeholder' => __('Guidence'),
-                'required' => true,
-            ), $checkout->get_value('customised_field_name'));
-            echo '</div>';
-        }
 
         // setting defines
         $this->init_form_fields();
@@ -72,38 +59,6 @@ class cwoa_WCPiladiMpesa extends WC_Payment_Gateway
         }
 
 
-        add_action('woocommerce_checkout_process', 'process_custom_payment');
-        function process_custom_payment(){
-
-            if($_POST['payment_method'] != 'cwoa_add_piladi_mpesa_gateway')
-                return;
-
-            if( !isset($_POST['mobile']) || empty($_POST['mobile']) )
-                wc_add_notice( __( 'Please add your mobile number', $this->domain ), 'error' );
-
-
-            if( !isset($_POST['transaction']) || empty($_POST['transaction']) )
-                wc_add_notice( __( 'Please add your transaction ID', $this->domain ), 'error' );
-
-        }
-
-        /**
-         * Update the order meta with field value
-         */
-        add_action( 'woocommerce_checkout_update_order_meta', 'custom_payment_update_order_meta' );
-        function custom_payment_update_order_meta( $order_id ) {
-
-            if($_POST['payment_method'] != 'custom')
-                return;
-
-            // echo "<pre>";
-            // print_r($_POST);
-            // echo "</pre>";
-            // exit();
-
-            update_post_meta( $order_id, 'mobile', $_POST['mobile'] );
-            update_post_meta( $order_id, 'transaction', $_POST['transaction'] );
-        }
 
 
     } // Here is the  End __construct()
@@ -163,12 +118,8 @@ class cwoa_WCPiladiMpesa extends WC_Payment_Gateway
         ?>
         <div id="custom_input">
             <p class="form-row form-row-wide">
-                <label for="mobile" class=""><?php _e('Mobile Number', $this->domain); ?></label>
-                <input type="text" class="" name="mobile" id="mobile" placeholder="" value="">
-            </p>
-            <p class="form-row form-row-wide">
                 <label for="transaction" class=""><?php _e('Transaction ID', $this->domain); ?></label>
-                <input type="text" class="" name="transaction" id="transaction" placeholder="" value="">
+                <input type="text" class="" name="transaction" id="transaction" placeholder="eg. KMNE4RT5GT" value="">
             </p>
         </div>
         <?php
@@ -176,17 +127,28 @@ class cwoa_WCPiladiMpesa extends WC_Payment_Gateway
 
 
     public function validate_fields() {
-        if ($_POST['mobile']) {
-            $success = true;
-        } else {
-            $error_message = __("The ", 'woothemes') . $this->mobile . __(" field is required", 'woothemes');
-            wc_add_notice(__('Field error: ', 'woothemes') . $error_message, 'error');
-            $success = False;
-        }
         if ($_POST['transaction']) {
-            $success = true;
+            $transaction_id = $_POST['transaction'];
+            if ($transaction_id == "pili")
+            {
+                global $woocommerce, $post;
+
+                $order = new WC_Order($post->ID);
+
+
+                $order_id = trim(str_replace('#', '', $order->get_order_number()));
+                $success = true;
+                update_post_meta( $order_id, 'mpesa_transaction_id', $transaction_id );
+            }
+            else
+            {
+                $error_message =  __("T badam quired", 'woothemes');
+                wc_add_notice(__('Field error: ', 'woothemes') . $error_message, 'error');
+                $success = False;
+            }
+
         } else {
-            $error_message = __("The ", 'woothemes') . $this->transaction . __(" field is required", 'woothemes');
+            $error_message =  __("The transaction ID field is required", 'woothemes');
             wc_add_notice(__('Field error: ', 'woothemes') . $error_message, 'error');
             $success = False;
         }
